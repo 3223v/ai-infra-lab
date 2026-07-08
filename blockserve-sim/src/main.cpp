@@ -1,8 +1,10 @@
 #include "blockserve/request.hpp"
 #include "blockserve/request_queue.hpp"
+#include "blockserve/workload_loader.hpp"
 
 #include <iostream>
 #include <vector>
+#include <cstdlib>
 
 namespace {
     void print_request(const blockserve::Request& request) {
@@ -13,34 +15,43 @@ namespace {
         std::cout << "Max New Tokens: " << request.max_new_tokens << std::endl;
         std::cout << "Generated Tokens: " << request.generated_tokens << std::endl;
     }
-}
-int main(){
+}// namespace
+int main(int argc, char* argv[]){
 
     std::cout << "Blockserve-Sim started\n" << std::endl;
+    
+    std::string workload_path;
+    if(argc >= 2){
+        workload_path = argv[1];
+    }else{
+        workload_path = "blockserve-sim/configs/sample_workload.jsonl";
+    }
 
-    std::vector<blockserve::Request> requests = {
-        {1, blockserve::RequestStatus::WAITING, 0, 64, 20, 0},
-        {2, blockserve::RequestStatus::PREFILLING, 1, 128, 40, 10},
-        {3, blockserve::RequestStatus::DECODING, 2, 256, 80, 20},
-        {4, blockserve::RequestStatus::FINISHED, 3, 512, 160, 40},
-        {5, blockserve::RequestStatus::CANCELED, 4, 1024, 320, 80},
-        {6, blockserve::RequestStatus::REJECTED, 5, 2048, 640, 160},
-        {7, blockserve::RequestStatus::TIMED_OUT, 6, 4096, 1280, 320}
-    };
+    std::cout << "workload file: " << workload_path << std::endl;
+
+    const blockserve::WorkloadLoadResult load_result = 
+        blockserve::load_workload_jsonl(workload_path);
+
+    if (!load_result.ok()) {
+        std::cerr << "Error loading workload:" << std::endl;
+        for (const auto& error : load_result.errors) {
+            std::cerr << " - " << error << std::endl;
+        }
+        return 1;
+    }
 
     blockserve::RequestQueue queue;
 
-    for (const auto& request : requests) {
+    for(const auto& request : load_result.requests) {
         queue.push(request);
     }
-
+    std::cout << "Loaded requests: " << load_result.requests.size() << "\n" << std::endl;
     std::cout << "Initial queue size: " << queue.size() << "\n" << std::endl;
 
     while(!queue.empty()) {
         auto request = queue.pop();
 
         if(!request.has_value()) {
-            std::cerr << "Error: Queue is empty but expected a request." << std::endl;
             break;
         }
         print_request(*request);

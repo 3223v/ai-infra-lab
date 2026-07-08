@@ -2,6 +2,7 @@ add_executable(blockserve_sim
     src/main.cpp
     src/request.cpp
     src/request_queue.cpp
+    src/workload_loader.cpp
 )
 
 target_include_directories(blockserve_sim PRIVATE
