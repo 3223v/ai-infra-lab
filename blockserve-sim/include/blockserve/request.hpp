@@ -5,15 +5,16 @@
 namespace blockserve {
     using RequestId = uint64_t;
     enum class RequestStatus {
-        Waiting,
-        Prefilling,
-        Decoding,
-        Finished,
-        Canceled,
-        Rejected,
-        TimedOut
+        WAITING,
+        PREFILLING,
+        DECODING,
+        FINISHED,
+        CANCELED,
+        REJECTED,
+        TIMED_OUT
     };
     std::string to_string(RequestStatus status);
+    bool is_terminal_status(RequestStatus status);
     struct Request {
         RequestId id;
         RequestStatus status;
