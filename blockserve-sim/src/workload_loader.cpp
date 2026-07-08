@@ -5,6 +5,7 @@
 #include <sstream>
 #include <optional>
 #include <string>
+#include <algorithm>
 
 namespace blockserve {
     // 其中包裹的函数为当前文件私有内部工具
@@ -115,13 +116,15 @@ namespace blockserve {
                 continue;
             }
 
-            RequestId request_id = id.value_or(next_request_id++);
+            RequestId request_id;
 
-            if(request_id >= next_request_id) {
-                next_request_id = request_id + 1;
-            }else{
-                ++next_request_id;
+            if (id) {
+                request_id = *id;
+                next_request_id = std::max(next_request_id, request_id + 1);
+            } else {
+                request_id = next_request_id++;
             }
+
             Request request{
                 .id = request_id,
                 .status = RequestStatus::WAITING,
@@ -134,4 +137,4 @@ namespace blockserve {
         }
         return result;
     }
-}
+} // namespace blockserve
