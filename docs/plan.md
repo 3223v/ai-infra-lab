@@ -1,1310 +1,1211 @@
-# AI Infra 两个月每日计划
+# AI Infra 12 周完整每日计划（BlockServe + TinyGPT + 1B 推理基线）
 
-起止日期：2026-07-08 至 2026-09-01  
-总周期：8 周，56 天  
-总投入：200 小时  
-节奏：工作日每天 3 小时，周六周日每天 5 小时  
-项目目标：2 个月内完成一个可展示的 AI Infra 学习与项目组合雏形，包括 BlockServe-Sim、CUDA Kernel Lab、ClusterPilot-Lite 和完整文档。
-
----
-
-## 总体产出
-
-两个月结束时，至少应形成以下成果：
-
-1. `blockserve-sim/`
-   - C++ 调度模拟器
-   - 请求状态机
-   - Paged KV Cache 模拟
-   - Sequential / Fixed Batch / Continuous Batching 对比
-   - benchmark 输入、输出、图表、文档
-
-2. `cuda-kernel-lab/`
-   - vector add
-   - RMSNorm
-   - RoPE 或 Argmax/Sampling
-   - 正确性验证
-   - 简单性能记录
-
-3. `clusterpilot-lite/`
-   - GPU 集群调度模拟器
-   - FIFO
-   - Bin Packing
-   - Gang Scheduling
-   - GPU 利用率、等待时间、碎片率统计
-
-4. `docs/`
-   - BlockServe KV Cache 说明
-   - BlockServe Scheduler 说明
-   - Benchmark 报告
-   - CUDA Kernel Lab 报告
-   - ClusterPilot-Lite 报告
-   - 两个月总结文档
+起止日期：2026-07-08 至 2026-09-29  
+总周期：12 周，84 天  
+总投入：300 小时  
+节奏：工作日每天 3 小时，周六周日每天 5 小时，一周 25 小时  
+当前基础：C++ 有基础但高级能力不足；已有必要计算机基础；本地环境为 macOS arm64、Apple clang、Python 3.9，当前无 CUDA 本地环境。  
+核心目标：先完成 BlockServe-Sim 和调度/KV Cache 能力，再建立 1B 小模型本地推理基线，随后手写 TinyGPT 并训练 10M 级模型，最后把自训练模型接入 BlockServe CPU 推理路径，并评估 100M 模型训练可行性。
 
 ---
 
-## 每日固定工作方式
+## 0. 重新评估后的结论
 
-### 工作日 3 小时模板
+1. 原 8 周计划的主线是合理的：BlockServe-Sim、CUDA Kernel Lab、ClusterPilot-Lite 和完整文档。它已经把每天的投入固定为工作日 3 小时、休息日 5 小时，并要求每天至少一次 commit、记录问题和结论。
+2. 根据你当前的 C++ 能力，前 2 周不能只堆功能，必须把 CMake、测试、错误处理、状态机、输入解析压实。否则后面 KV Cache 和调度会失控。
+3. “在 4GB 显存电脑上推理 1B 左右模型”可以作为第 6 周的基线目标，但不应理解为 12 周内从零写出完整 1B Llama/Qwen Runtime。现实目标是：用 llama.cpp/Metal 或 CPU 跑通 0.5B~1.1B GGUF 模型，记录性能；自研 BlockServe 优先接入自己训练的 TinyGPT。
+4. “手写小 GPT 并训练 10M 模型”适合作为第 9~11 周目标。100M 模型训练只做可行性预研，不强行训练完成。
+5. 本计划采用“先系统、再模型、最后接入”的顺序：BlockServe-Sim → 1B 推理基线 → CUDA/Kernel Lab → ClusterPilot → TinyGPT-Train → BlockServe CPU 推理接入。
+
+---
+
+## 1. 阶段产出
+
+### 第 1~5 周：BlockServe-Sim v0.1
+- C++ 调度模拟器
+- Request 状态机
+- WorkloadLoader
+- Paged KV Cache 模拟
+- Sequential / Fixed Batch / Continuous Batching 对比
+- Benchmark、图表、文档
+
+### 第 6 周：1B 本地推理基线与 BlockServe-Real 边界
+- 使用 llama.cpp/Metal 或 CPU 跑通 Qwen2.5-0.5B 或 TinyLlama-1.1B 量化模型
+- 记录 tokens/s、内存占用、上下文限制
+- 写清楚自研 Runtime 与工业 1B Runtime 的差距
+
+### 第 7 周：CUDA Kernel Lab
+- vector add
+- RMSNorm
+- RoPE 或 sampling
+- 如果没有 CUDA 机器，保留 CPU reference、CUDA 源文件和远程运行说明
+
+### 第 8 周：ClusterPilot-Lite
+- 虚拟 GPU 集群
+- FIFO / Bin Packing / Gang Scheduling
+- GPU utilization、queue time、fragmentation 指标
+
+### 第 9~12 周：TinyGPT-Train + BlockServe 接入
+- 阅读 minGPT / nanoGPT
+- 手写 TinyGPT-Train
+- 训练 char-level GPT 和 10M 模型
+- 导出 checkpoint
+- BlockServe CPU backend 加载并生成
+- 100M 模型训练可行性报告
+
+---
+
+## 2. 每日固定工作方式
+
+### 工作日 3 小时
 
 | 时间 | 内容 |
 |---|---|
-| 45 分钟 | 学习当天相关概念 |
-| 90 分钟 | 写代码或改项目结构 |
+| 35 分钟 | 学习当天相关概念，只读必要资料 |
+| 100 分钟 | 写代码或改项目结构 |
 | 30 分钟 | 测试、调试、修正 |
-| 15 分钟 | 写当日记录 |
+| 15 分钟 | 写当日记录和 commit |
 
-### 休息日 5 小时模板
+### 休息日 5 小时
 
 | 时间 | 内容 |
 |---|---|
-| 60 分钟 | 学习与复盘 |
-| 180 分钟 | 核心开发 |
-| 45 分钟 | 测试与 benchmark |
-| 15 分钟 | 整理文档和提交记录 |
+| 50 分钟 | 学习与复盘 |
+| 210 分钟 | 核心开发 |
+| 25 分钟 | 测试或 benchmark |
+| 15 分钟 | 文档、记录、commit |
 
-### 每天必须完成
-
+### 每日硬性要求
 - 至少一次 Git commit。
-- 至少记录一个问题、一个结论、一个下一步。
+- 至少补一条文档或当日记录。
+- 至少跑一次可执行程序或测试。
+- 当天任务未完成时，先保证主线，不做扩展项。
 - 不允许只看资料不产出。
-- 当天任务未完成时，优先保留主线，砍掉扩展项。
 
 ---
 
-# 第 1 周：C++ 工程基础与仓库骨架
+## 3. 12 周每日计划
 
-周目标：建立工程化开发基础，完成仓库结构、CMake、测试框架、日志、JSON 配置读取。
+# 第 1 周
+
+周目标：C++ 工程骨架、CMake、基础类型与输入读取；承接已提前推进的 Day1~Day4。重点是把当前代码整理成稳定基础，不追求功能复杂度。
 
 ## Day 1｜2026-07-08｜周三｜3h
 
-主题：建立仓库与总结构。
+主题：仓库与现状整理。
 
 任务：
+1. 确认当前 git 状态与已完成内容。
+2. 整理根 README 与 blockserve-sim README。
+3. 记录当前环境：macOS arm64、Apple clang、Python 3.9、无 CUDA。
 
-1. 创建仓库 `ai-infra-lab`。
-2. 建立目录：
-   - `blockserve-sim/`
-   - `cuda-kernel-lab/`
-   - `clusterpilot-lite/`
-   - `docs/`
-   - `scripts/`
-3. 写根目录 `README.md`，说明项目目标和两个月计划。
-4. 安装或确认工具链：CMake、GCC/Clang、Python、Git。
-
-产出：
-
-- 根目录结构完成。
-- `README.md` 初版。
-- 第一次 Git commit。
-
-验收：
-
-- 仓库结构清晰。
-- 能说明三个子项目分别解决什么问题。
+产出 / 验收：
+- git log 清晰
+- docs/current_status.md
 
 ## Day 2｜2026-07-09｜周四｜3h
 
-主题：CMake 基础与最小 C++ 程序。
+主题：CMake 与 Request 模块整理。
 
 任务：
+1. 统一 target 名、输出格式、RequestStatus 大写。
+2. 检查 include/src 组织。
+3. 补 docs/cpp_cmake_notes.md。
 
-1. 在 `blockserve-sim/` 下创建最小 CMake 项目。
-2. 编译一个 `main.cpp`。
-3. 学习并记录：target、include directory、build directory。
-4. 增加 `src/`、`include/`、`tests/` 目录。
-
-产出：
-
-- `blockserve-sim` 可以被 CMake 编译。
-- `docs/cpp_cmake_notes.md` 初版。
-
-验收：
-
-- 可以执行：`cmake -B build && cmake --build build`。
+产出 / 验收：
+- blockserve_sim 可编译运行
+- 文档能解释 target/include/build
 
 ## Day 3｜2026-07-10｜周五｜3h
 
-主题：C++ 基础结构与编译单元。
+主题：WorkloadLoader 稳定化。
 
 任务：
+1. 修正 ID 自动递增逻辑。
+2. 统一错误信息格式。
+3. 补 sample/bad workload。
 
-1. 学习并使用：`.h` / `.cpp` 分离。
-2. 写一个简单的 `AppConfig` 类。
-3. 理解 namespace、class、struct、构造函数。
-4. 整理代码风格：命名、目录、头文件保护。
-
-产出：
-
-- `AppConfig` 或类似配置类。
-- 一个最小可运行 CLI。
-
-验收：
-
-- 能解释头文件和源文件如何组织。
-- 能解释 class 与 struct 的使用场景。
+产出 / 验收：
+- 正常/错误 workload 都可运行
+- docs/workload_format.md 初版
 
 ## Day 4｜2026-07-11｜周六｜5h
 
-主题：测试框架与基础容器。
+主题：Arrival Simulation。
 
 任务：
+1. 实现或整理 arrival-time simulation。
+2. 按 arrival_time 排序进入等待队列。
+3. 输出 waiting_queue_size。
 
-1. 集成 GoogleTest 或 Catch2。
-2. 写 3 个最小单元测试。
-3. 学习并使用：`std::vector`、`std::queue`、`std::unordered_map`。
-4. 写一个简单队列类，用测试覆盖 push/pop/empty。
-
-产出：
-
-- 测试框架可运行。
-- `tests/` 下至少 3 个测试用例。
-
-验收：
-
-- 可以执行测试命令。
-- 测试失败时能定位问题。
+产出 / 验收：
+- 请求按时间进入系统
+- docs/day04.md
 
 ## Day 5｜2026-07-12｜周日｜5h
 
-主题：RAII、资源管理与错误处理。
+主题：测试框架接入。
 
 任务：
+1. 接入 Catch2 或 GoogleTest，优先 Catch2 单文件/FetchContent。
+2. 为 RequestStatus、RequestQueue、WorkloadLoader 写最小测试。
 
-1. 学习 RAII、`std::unique_ptr`、引用和值语义。
-2. 写一个简单资源对象，例如模拟资源句柄。
-3. 增加错误处理方式：返回 bool / enum / optional。
-4. 写测试覆盖资源申请、释放、失败场景。
-
-产出：
-
-- 一个资源管理小模块。
-- `docs/cpp_raii_notes.md`。
-
-验收：
-
-- 能解释为什么系统项目里 RAII 重要。
+产出 / 验收：
+- ctest 可运行
+- 至少 6 个测试
 
 ## Day 6｜2026-07-13｜周一｜3h
 
-主题：JSON 配置与日志。
+主题：RAII 与 optional 复盘。
 
 任务：
+1. 写 docs/cpp_raii_optional_notes.md。
+2. 把 pop/loader 错误处理梳理清楚。
+3. 补空队列、坏输入测试。
 
-1. 集成 `nlohmann/json`。
-2. 集成 `spdlog` 或使用简单日志封装。
-3. 读取一个 `config.json`。
-4. 打印配置参数。
-
-产出：
-
-- `configs/default.json`。
-- 配置读取模块。
-
-验收：
-
-- 修改 JSON 后程序行为能变化。
+产出 / 验收：
+- 能解释 optional/nullopt
+- 错误路径测试通过
 
 ## Day 7｜2026-07-14｜周二｜3h
 
-主题：第 1 周整理。
+主题：第1周整理。
 
 任务：
+1. 清理命名和目录。
+2. 补 README 运行命令。
+3. 从干净 build 目录重编译。
 
-1. 重构目录结构。
-2. 修正 CMake。
-3. 补充 README 运行说明。
-4. 清理无用代码。
-5. 写第 1 周复盘。
+产出 / 验收：
+- docs/week1_review.md
+- v0 工程骨架稳定
 
-产出：
 
-- `docs/week1_review.md`。
-- 稳定可编译的工程骨架。
+# 第 2 周
 
-验收：
-
-- 从干净环境 clone 后能编译和运行测试。
-
----
-
-# 第 2 周：BlockServe-Sim 请求模型与状态机
-
-周目标：实现请求生命周期模拟，不涉及 KV Cache 和 GPU。
+周目标：BlockServe-Sim 请求生命周期：时间推进、状态机、取消/超时/拒绝、基础指标。
 
 ## Day 8｜2026-07-15｜周三｜3h
 
-主题：定义请求模型。
+主题：模拟主循环。
 
 任务：
+1. 实现 Simulator 主循环。
+2. 支持 current_time 推进。
+3. 将 arrived 请求放入 waiting_queue。
 
-1. 定义请求的必要字段：到达时间、prompt 长度、输出长度、状态。
-2. 定义请求状态枚举。
-3. 实现请求创建和基础校验。
-4. 写单元测试。
-
-产出：
-
-- Request 模块。
-- RequestStatus 枚举。
-
-验收：
-
-- 能创建合法请求。
-- 非法请求能被拒绝或标记。
+产出 / 验收：
+- 给定 workload 能看到 tick 日志
 
 ## Day 9｜2026-07-16｜周四｜3h
 
-主题：Workload 输入。
+主题：请求状态字段扩展。
 
 任务：
+1. 为 Request 增加 start_time、first_token_time、finish_time、remaining_prefill_tokens 等字段。
+2. 不做复杂设计，只满足模拟。
 
-1. 设计 JSONL workload 格式。
-2. 实现 workload 读取。
-3. 对输入字段做校验。
-4. 写 2 个示例 workload。
-
-产出：
-
-- `benchmark/workloads/simple.jsonl`
-- WorkloadLoader。
-
-验收：
-
-- 程序能读取多个请求并按 arrival time 排序。
+产出 / 验收：
+- 状态字段能被打印和记录
 
 ## Day 10｜2026-07-17｜周五｜3h
 
-主题：模拟时间推进。
+主题：Sequential 生命周期。
 
 任务：
+1. 实现单请求 WAITING→PREFILLING→DECODING→FINISHED。
+2. prefill 用模拟 cost，decode 每步 1 token。
 
-1. 实现模拟器主循环。
-2. 支持当前时间 tick 推进。
-3. 到达时间满足时，将请求加入等待队列。
-4. 输出每个 tick 的队列状态。
-
-产出：
-
-- Simulator 初版。
-
-验收：
-
-- 给定 workload，能看到请求按时间进入系统。
+产出 / 验收：
+- 一个请求能完整完成
 
 ## Day 11｜2026-07-18｜周六｜5h
 
-主题：请求状态机。
+主题：多请求 Sequential。
 
 任务：
+1. 多个请求按顺序处理。
+2. 计算 latency、queue_time、TTFT。
 
-1. 实现 WAITING → PREFILLING → DECODING → FINISHED。
-2. 模拟 prefill 消耗时间。
-3. 模拟 decode 每次生成一个 token。
-4. 记录 first token time 和 finish time。
-5. 写状态转换测试。
-
-产出：
-
-- 请求生命周期完整跑通。
-
-验收：
-
-- 每个请求都有开始时间、首 token 时间、完成时间。
+产出 / 验收：
+- 输出每个请求的结果
 
 ## Day 12｜2026-07-19｜周日｜5h
 
-主题：取消、超时、拒绝。
+主题：取消与超时。
 
 任务：
+1. workload 支持 cancel_time、timeout。
+2. 请求在任意阶段可变为 CANCELLED/TIMEOUT。
 
-1. 增加 CANCELLED 状态。
-2. 增加 TIMEOUT 状态。
-3. 增加 REJECTED 状态。
-4. workload 支持可选 cancel_time 和 timeout。
-5. 写测试覆盖异常状态。
-
-产出：
-
-- 异常状态可模拟。
-
-验收：
-
-- 请求可以在任意阶段被取消或超时。
+产出 / 验收：
+- 异常状态测试通过
 
 ## Day 13｜2026-07-20｜周一｜3h
 
-主题：指标记录。
+主题：Rejected 与输入校验。
 
 任务：
+1. 加入 max_prompt_len 或 max_total_tokens 限制。
+2. 超过限制标记 REJECTED。
 
-1. 实现 MetricsRecorder。
-2. 记录 latency、queue time、TTFT、完成数量。
-3. 输出 CSV 或 JSON。
-4. 写一个简单结果文件。
-
-产出：
-
-- `benchmark/results/simple_result.json` 或 `.csv`。
-
-验收：
-
-- 能根据结果计算平均延迟和完成请求数。
+产出 / 验收：
+- 非法/过大请求被拒绝
 
 ## Day 14｜2026-07-21｜周二｜3h
 
-主题：第 2 周整理。
+主题：第2周整理。
 
 任务：
+1. 写 docs/blockserve_request_lifecycle.md。
+2. 补状态机测试。
+3. 清理日志。
 
-1. 补充 `docs/blockserve_request_lifecycle.md`。
-2. 清理状态机代码。
-3. 补全测试。
-4. 写第 2 周复盘。
+产出 / 验收：
+- week2_review 完成
+- 生命周期能讲清楚
 
-产出：
 
-- 请求生命周期文档。
-- `docs/week2_review.md`。
+# 第 3 周
 
-验收：
-
-- 能完整解释请求从进入系统到完成的过程。
-
----
-
-# 第 3 周：Paged KV Cache 模拟
-
-周目标：实现 block-based KV Cache 管理，不做真实 GPU 显存。
+周目标：Paged KV Cache 模拟：BlockPool、Request Block Table、按需分配、释放、contiguous baseline。
 
 ## Day 15｜2026-07-22｜周三｜3h
 
-主题：KV Cache 问题建模。
+主题：KV Cache 概念建模。
 
 任务：
+1. 写 docs/blockserve_kv_cache.md 初版。
+2. 定义 block_size、total_blocks、token_to_block 规则。
 
-1. 学习 KV Cache 的作用。
-2. 写笔记：为什么 LLM serving 会被 KV Cache 限制。
-3. 定义 block_size、total_blocks、used_blocks。
-4. 在配置文件中加入 KV 参数。
-
-产出：
-
-- `docs/blockserve_kv_cache.md` 初版。
-- 配置支持 KV 参数。
-
-验收：
-
-- 能用自己的话解释 KV Cache 和 block 的关系。
+产出 / 验收：
+- 能解释 token 数如何映射到 block
 
 ## Day 16｜2026-07-23｜周四｜3h
 
 主题：BlockPool。
 
 任务：
+1. 实现 BlockPool：allocate/free/free_count/used_count。
+2. 写边界测试。
 
-1. 实现 BlockPool。
-2. 支持 allocate one block。
-3. 支持 free one block。
-4. 支持查询 free/used 数量。
-5. 写单元测试。
-
-产出：
-
-- BlockPool 模块。
-
-验收：
-
-- block 申请和释放行为正确。
+产出 / 验收：
+- 重复释放/无 block 时行为正确
 
 ## Day 17｜2026-07-24｜周五｜3h
 
-主题：Request Block Table。
+主题：RequestBlockTable。
 
 任务：
+1. 为每个 request 维护 block list。
+2. 支持 allocate_for_request/free_request。
 
-1. 为每个请求维护 block table。
-2. 支持请求申请新 block。
-3. 支持请求释放全部 block。
-4. 防止重复释放。
-5. 写单元测试。
-
-产出：
-
-- RequestBlockTable 模块。
-
-验收：
-
-- 多请求不会共享同一个 block。
+产出 / 验收：
+- 多请求不共享 block
 
 ## Day 18｜2026-07-25｜周六｜5h
 
-主题：token 增长与按需分配。
+主题：按需分配。
 
 任务：
+1. 当 token 跨 block 边界时分配新 block。
+2. 覆盖 prompt_len=33/block_size=16 场景。
 
-1. 模拟 prefill 期间 token 增长。
-2. 模拟 decode 期间 token 逐步增加。
-3. 当 token 数跨过 block 边界时申请新 block。
-4. block 不足时拒绝或暂停请求。
-5. 写测试覆盖边界。
-
-产出：
-
-- token-to-block 模拟逻辑。
-
-验收：
-
-- prompt_len=33、block_size=16 时需要 3 个 block。
+产出 / 验收：
+- 33 tokens 需要 3 blocks
 
 ## Day 19｜2026-07-26｜周日｜5h
 
 主题：资源回收。
 
 任务：
+1. FINISHED/CANCELLED/TIMEOUT 后释放所有 blocks。
+2. 写长循环测试。
 
-1. 请求 FINISHED 后释放 block。
-2. 请求 CANCELLED 后释放 block。
-3. 请求 TIMEOUT 后释放 block。
-4. 增加长时间随机测试。
-5. 检查 block 是否泄漏。
-
-产出：
-
-- 资源回收逻辑稳定。
-
-验收：
-
-- 所有请求结束后 used_blocks 回到 0。
+产出 / 验收：
+- 所有请求结束 used_blocks 回到 0
 
 ## Day 20｜2026-07-27｜周一｜3h
 
-主题：连续 KV Cache baseline。
+主题：Contiguous baseline。
 
 任务：
+1. 实现 contiguous cache 模拟：按 max_total_tokens 预留。
+2. 与 paged 按需增长形成对照。
 
-1. 模拟 contiguous cache 策略。
-2. 每个请求按最大长度预留 block。
-3. 与 paged cache 的按需增长做对比准备。
-4. 写测试。
-
-产出：
-
-- ContiguousCacheSimulator。
-
-验收：
-
-- 同一请求在 contiguous 下通常占用更多 block。
+产出 / 验收：
+- 相同 workload 能输出两种占用
 
 ## Day 21｜2026-07-28｜周二｜3h
 
-主题：第 3 周整理。
+主题：第3周整理。
 
 任务：
+1. 完善 KV Cache 文档。
+2. 画一张文字/ASCII 映射图。
+3. 补 README。
 
-1. 完成 `docs/blockserve_kv_cache.md`。
-2. 补测试。
-3. 补 README 中 KV Cache 说明。
-4. 写第 3 周复盘。
+产出 / 验收：
+- week3_review 完成
 
-产出：
 
-- KV Cache 文档成型。
-- `docs/week3_review.md`。
+# 第 4 周
 
-验收：
-
-- 能讲清楚 paged cache 和 contiguous cache 的差异。
-
----
-
-# 第 4 周：调度策略与 Continuous Batching
-
-周目标：实现 sequential、fixed batch、continuous batching 三类策略。
+周目标：调度策略：Sequential、Fixed Batch、Continuous Batching、Prefill/Decode 分离、Chunked Prefill。
 
 ## Day 22｜2026-07-29｜周三｜3h
 
-主题：Sequential baseline。
+主题：SequentialScheduler。
 
 任务：
+1. 把之前 sequential 生命周期封装为策略。
+2. 输出统一 metrics。
 
-1. 实现一个请求跑完再处理下一个请求。
-2. 接入已有请求状态机。
-3. 输出 latency、TTFT、完成数。
-4. 写测试。
-
-产出：
-
-- SequentialScheduler。
-
-验收：
-
-- 能作为最简单 baseline 运行。
+产出 / 验收：
+- Sequential baseline 可独立运行
 
 ## Day 23｜2026-07-30｜周四｜3h
 
-主题：Fixed Batch baseline。
+主题：FixedBatchScheduler。
 
 任务：
+1. 实现固定 batch 收集与处理。
+2. 模拟短请求等待长请求。
 
-1. 实现固定 batch 收集逻辑。
-2. batch 内请求对齐处理。
-3. 模拟短请求等待长请求。
-4. 输出指标。
-
-产出：
-
-- FixedBatchScheduler。
-
-验收：
-
-- 能观察 fixed batch 的等待和浪费。
+产出 / 验收：
+- 能观察 batch padding/等待
 
 ## Day 24｜2026-07-31｜周五｜3h
 
-主题：Continuous Batching 基础。
+主题：ContinuousBatchScheduler v0。
 
 任务：
+1. 每轮 decode 优先。
+2. 引入 token_budget。
+3. 剩余预算加入 prefill。
 
-1. 设计每轮调度 step。
-2. decode 请求优先生成一个 token。
-3. 有剩余预算时加入新 prefill。
-4. 引入 token budget。
-
-产出：
-
-- ContinuousBatchScheduler 初版。
-
-验收：
-
-- 多个请求可交错执行。
+产出 / 验收：
+- 多请求可交错执行
 
 ## Day 25｜2026-08-01｜周六｜5h
 
-主题：prefill/decode 分离。
+主题：Prefill/Decode 分离。
 
 任务：
+1. 维护 prefill queue 和 decode queue。
+2. prefill 完成进入 decode。
 
-1. 明确 prefill 队列和 decode 队列。
-2. 实现 prefill 完成后进入 decode。
-3. 实现 max_prefill_tokens_per_step。
-4. 模拟长 prompt 对 decode 的影响。
-5. 写测试。
-
-产出：
-
-- Prefill / Decode 分离调度。
-
-验收：
-
-- 长 prompt 不会完全阻塞所有 decode。
+产出 / 验收：
+- 长 prompt 不完全阻塞 decode
 
 ## Day 26｜2026-08-02｜周日｜5h
 
-主题：chunked prefill。
+主题：Chunked Prefill。
 
 任务：
+1. 将长 prompt 拆 chunk。
+2. 对比 non-chunked。
 
-1. 将长 prompt 拆成多个 chunk。
-2. 每轮只处理一个或多个 chunk。
-3. 对比一次性 prefill 与 chunked prefill。
-4. 记录 TTFT 和 TPOT 变化。
-
-产出：
-
-- Chunked prefill 模拟。
-
-验收：
-
-- 同一 workload 下可比较 chunked 与 non-chunked。
+产出 / 验收：
+- TTFT/TPOT 变化可记录
 
 ## Day 27｜2026-08-03｜周一｜3h
 
-主题：Paged cache 接入调度。
+主题：Paged Cache 接入调度。
 
 任务：
+1. continuous batching 每生成 token 更新 block。
+2. block 不足时 reject 或等待。
 
-1. continuous batching 接入 paged cache。
-2. 请求每生成 token 时更新 block 使用。
-3. block 不足时触发 reject 或等待。
-4. 记录 peak_used_blocks。
-
-产出：
-
-- Continuous + Paged Cache 可运行。
-
-验收：
-
-- 调度和 KV 资源管理联动。
+产出 / 验收：
+- 调度与 KV 联动
 
 ## Day 28｜2026-08-04｜周二｜3h
 
-主题：第 4 周整理。
+主题：第4周整理。
 
 任务：
+1. 写 docs/blockserve_scheduler.md。
+2. 补三种策略说明和测试。
 
-1. 完成 `docs/blockserve_scheduler.md`。
-2. 整理三种调度策略说明。
-3. 补测试。
-4. 写第 4 周复盘。
+产出 / 验收：
+- week4_review 完成
 
-产出：
 
-- Scheduler 文档。
-- `docs/week4_review.md`。
+# 第 5 周
 
-验收：
-
-- 能讲清楚 fixed batch 与 continuous batching 的区别。
-
----
-
-# 第 5 周：Benchmark、实验与报告
-
-周目标：让 BlockServe-Sim 形成可展示实验结果。
+周目标：Benchmark 与报告：workload 生成、批量运行、指标统计、图表、阶段性 BlockServe-Sim v0.1。
 
 ## Day 29｜2026-08-05｜周三｜3h
 
 主题：workload 生成器。
 
 任务：
+1. 写 scripts/generate_workload.py。
+2. 生成 short_chat/mixed/long_prompt。
 
-1. 写 Python workload 生成脚本。
-2. 生成 short_chat workload。
-3. 生成 mixed_length workload。
-4. 生成 long_prompt workload。
-
-产出：
-
-- `scripts/generate_workload.py`
-- 三组 workload。
-
-验收：
-
-- workload 可重复生成，支持随机种子。
+产出 / 验收：
+- 随机种子可复现
 
 ## Day 30｜2026-08-06｜周四｜3h
 
 主题：tight memory workload。
 
 任务：
+1. 设计显存受限 block 配置。
+2. 让 contiguous/paged 出现差异。
 
-1. 设计显存受限场景。
-2. 生成 tight_memory workload。
-3. 调整 total_blocks 和 block_size 参数。
-4. 确保能触发 reject 或排队。
-
-产出：
-
-- `tight_memory.jsonl`。
-
-验收：
-
-- paged cache 与 contiguous cache 出现明显差异。
+产出 / 验收：
+- 能触发 reject 或排队
 
 ## Day 31｜2026-08-07｜周五｜3h
 
 主题：benchmark runner。
 
 任务：
+1. 写 scripts/run_benchmark.py。
+2. 批量跑 scheduler/cache 组合。
 
-1. 写 benchmark 批量运行脚本。
-2. 自动跑不同 scheduler 和 cache 策略。
-3. 输出统一格式结果。
-4. 保存配置和结果。
-
-产出：
-
-- `scripts/run_benchmark.py`。
-
-验收：
-
-- 一条命令能跑完一组完整对比。
+产出 / 验收：
+- 一条命令跑完整组
 
 ## Day 32｜2026-08-08｜周六｜5h
 
-主题：结果统计。
+主题：指标统计。
 
 任务：
+1. 统计 completed/rejected/avg/P95/TTFT/TPOT/tokens/s/peak_blocks。
 
-1. 统计 completed、rejected、avg latency、P95 latency。
-2. 统计 TTFT、TPOT、tokens/s。
-3. 统计 peak blocks、cache utilization。
-4. 统一写入 CSV。
-
-产出：
-
-- benchmark result CSV。
-
-验收：
-
-- 指标含义清楚，计算方式可解释。
+产出 / 验收：
+- 输出 CSV
 
 ## Day 33｜2026-08-09｜周日｜5h
 
-主题：图表与分析。
+主题：图表。
 
 任务：
+1. 画完成数、P95 latency、peak block、reject 对比图。
 
-1. 用 Python 画完成请求数对比图。
-2. 画 P95 latency 对比图。
-3. 画 peak block usage 对比图。
-4. 画 rejected requests 对比图。
-5. 写初步分析。
-
-产出：
-
-- `benchmark/plots/` 下至少 4 张图。
-
-验收：
-
-- 图表能说明系统策略差异。
+产出 / 验收：
+- 至少 4 张图
 
 ## Day 34｜2026-08-10｜周一｜3h
 
 主题：Benchmark 报告。
 
 任务：
+1. 写 docs/blockserve_benchmark.md。
+2. 说明环境、配置、workload、结果。
 
-1. 写 `docs/blockserve_benchmark.md`。
-2. 说明实验环境、配置、workload、结果。
-3. 不夸大结论，只描述数据。
-4. 写当前限制。
-
-产出：
-
-- Benchmark 报告初版。
-
-验收：
-
-- 别人能根据文档复现实验。
+产出 / 验收：
+- 别人可复现
 
 ## Day 35｜2026-08-11｜周二｜3h
 
-主题：BlockServe-Sim 总整理。
+主题：BlockServe-Sim v0.1。
 
 任务：
+1. 整理 README、命令、限制、下一步。
+2. 打 tag 可选。
 
-1. 整理 BlockServe-Sim README。
-2. 补充运行命令。
-3. 清理代码和无用文件。
-4. 写第 5 周复盘。
+产出 / 验收：
+- BlockServe-Sim 可作为简历雏形
 
-产出：
 
-- BlockServe-Sim 形成阶段性完整项目。
-- `docs/week5_review.md`。
+# 第 6 周
 
-验收：
-
-- BlockServe-Sim 可以作为简历项目雏形展示。
-
----
-
-# 第 6 周：CUDA Kernel Lab
-
-周目标：掌握 CUDA 基础，完成 2~3 个真实 LLM 相关小 kernel。
+周目标：真实小模型推理准备：llama.cpp/Metal 基准、模型格式理解、BlockServe CPU 后端最小化，不硬写完整 1B Runtime。
 
 ## Day 36｜2026-08-12｜周三｜3h
 
-主题：CUDA 环境与 vector add。
+主题：1B 推理基线：llama.cpp。
 
 任务：
+1. 在 Mac 上构建 llama.cpp，优先启用 Metal；如不可行用 CPU。
+2. 下载/准备 Qwen2.5-0.5B GGUF 或 TinyLlama 1.1B GGUF。
 
-1. 确认 CUDA 编译环境。
-2. 建立 `cuda-kernel-lab` CMake 项目。
-3. 写 vector add kernel。
-4. 用 CPU 结果验证正确性。
-
-产出：
-
-- vector add 可运行。
-
-验收：
-
-- 能解释 kernel launch、grid、block、thread。
+产出 / 验收：
+- 能用基准工具跑一个小模型
 
 ## Day 37｜2026-08-13｜周四｜3h
+
+主题：显存/内存测量。
+
+任务：
+1. 记录模型文件大小、上下文长度、运行内存、tokens/s。
+2. 比较 0.5B 与 1.1B 的可行性。
+
+产出 / 验收：
+- docs/local_1b_inference_baseline.md
+
+## Day 38｜2026-08-14｜周五｜3h
+
+主题：模型结构阅读。
+
+任务：
+1. 阅读 Qwen/Llama decoder-only 架构字段。
+2. 记录 embedding、RMSNorm、RoPE、QKV、MLP、lm_head。
+
+产出 / 验收：
+- docs/model_arch_notes.md
+
+## Day 39｜2026-08-15｜周六｜5h
+
+主题：BlockServe-Real 边界定义。
+
+任务：
+1. 明确 12 周内自研 Runtime 不完整支持 1B。
+2. 定义 CPU-only TinyGPT 推理路径作为可完成目标。
+
+产出 / 验收：
+- docs/blockserve_real_scope.md
+
+## Day 40｜2026-08-16｜周日｜5h
+
+主题：Tokenizer/权重格式预研。
+
+任务：
+1. 了解 GGUF/safetensors/自定义 weights.bin 的差异。
+2. 决定先用 Python 导出自定义权重。
+
+产出 / 验收：
+- docs/weight_format_notes.md
+
+## Day 41｜2026-08-17｜周一｜3h
+
+主题：CPU Tensor 最小封装。
+
+任务：
+1. 实现极简 CPU tensor 或先用 vector<float> 辅助。
+2. 只支持后续 TinyGPT 需要的形状。
+
+产出 / 验收：
+- 最小单元测试通过
+
+## Day 42｜2026-08-18｜周二｜3h
+
+主题：第6周整理。
+
+任务：
+1. 整理 1B 基线数据。
+2. 写结论：能跑基准，不把自研 1B 作为短期硬目标。
+
+产出 / 验收：
+- week6_review 完成
+
+
+# 第 7 周
+
+周目标：CUDA Kernel Lab 或远程 GPU 替代路径：vector add、RMSNorm、RoPE；如果无 CUDA 环境，完成 CPU reference + CUDA 文档与远程脚本。
+
+## Day 43｜2026-08-19｜周三｜3h
+
+主题：CUDA 环境确认。
+
+任务：
+1. 寻找远程 NVIDIA GPU/Colab/实验室机器。
+2. 若没有，写 CUDA 代码但本地不运行，完成 CPU reference。
+
+产出 / 验收：
+- 明确 CUDA 路线
+
+## Day 44｜2026-08-20｜周四｜3h
+
+主题：Vector Add。
+
+任务：
+1. 建立 cuda-kernel-lab 结构。
+2. 写 vector add kernel 或 CUDA 源文件草稿。
+3. CPU reference。
+
+产出 / 验收：
+- 可在 CUDA 环境运行或代码可编译计划明确
+
+## Day 45｜2026-08-21｜周五｜3h
 
 主题：CUDA 内存与计时。
 
 任务：
+1. 学习 cudaMalloc/cudaMemcpy/cudaEvent。
+2. 记录笔记。
 
-1. 学习 cudaMalloc、cudaMemcpy、cudaFree。
-2. 使用 cudaEvent 计时。
-3. 给 vector add 增加不同输入规模测试。
-4. 记录运行时间。
+产出 / 验收：
+- docs/cuda_basics.md
 
-产出：
+## Day 46｜2026-08-22｜周六｜5h
 
-- vector add benchmark。
-
-验收：
-
-- 能区分数据拷贝时间和 kernel 时间。
-
-## Day 38｜2026-08-14｜周五｜3h
-
-主题：RMSNorm 数学与 CPU reference。
+主题：RMSNorm reference。
 
 任务：
+1. Python/C++ CPU reference。
+2. 测试数据生成。
 
-1. 学习 RMSNorm 在 Transformer 中的位置。
-2. 用 Python 或 C++ 写 CPU reference。
-3. 设计输入输出格式。
-4. 准备测试数据。
+产出 / 验收：
+- RMSNorm 数学可解释
 
-产出：
+## Day 47｜2026-08-23｜周日｜5h
 
-- RMSNorm reference。
-
-验收：
-
-- 能解释 RMSNorm 的输入、输出、参数。
-
-## Day 39｜2026-08-15｜周六｜5h
-
-主题：RMSNorm CUDA kernel。
+主题：RMSNorm CUDA。
 
 任务：
-
 1. 实现 naive RMSNorm kernel。
-2. 与 CPU/Python reference 对比。
-3. 记录 max error 和 mean error。
-4. 增加不同 hidden size 测试。
+2. 如无环境，写代码 + expected validation plan。
 
-产出：
+产出 / 验收：
+- README 说明验证方式
 
-- RMSNorm kernel 初版。
-
-验收：
-
-- 正确性误差在可接受范围内。
-
-## Day 40｜2026-08-16｜周日｜5h
-
-主题：RMSNorm 简单优化与分析。
-
-任务：
-
-1. 优化线程组织。
-2. 尝试减少重复全局内存访问。
-3. 对比 naive 和 optimized。
-4. 写 RMSNorm 小报告。
-
-产出：
-
-- `cuda-kernel-lab/rmsnorm/README.md`。
-
-验收：
-
-- 能说明优化前后差异，不要求达到工业性能。
-
-## Day 41｜2026-08-17｜周一｜3h
+## Day 48｜2026-08-24｜周一｜3h
 
 主题：RoPE reference。
 
 任务：
+1. 写 RoPE CPU/Python reference。
+2. 准备输入数据。
 
-1. 学习 RoPE 的作用。
-2. 写 CPU/Python reference。
-3. 准备输入数据。
-4. 明确维度布局。
+产出 / 验收：
+- RoPE 作用可解释
 
-产出：
+## Day 49｜2026-08-25｜周二｜3h
 
-- RoPE reference。
-
-验收：
-
-- 能解释 RoPE 为什么和 position 相关。
-
-## Day 42｜2026-08-18｜周二｜3h
-
-主题：RoPE CUDA kernel 与第 6 周整理。
+主题：第7周整理。
 
 任务：
+1. 整理 cuda-kernel-lab README。
+2. 明确远程运行清单。
 
-1. 实现简单 RoPE kernel。
-2. 做 correctness 对比。
-3. 整理 `cuda-kernel-lab/README.md`。
-4. 写第 6 周复盘。
+产出 / 验收：
+- week7_review 完成
 
-产出：
 
-- RoPE kernel 初版。
-- `docs/week6_review.md`。
+# 第 8 周
 
-验收：
+周目标：ClusterPilot-Lite：GPU 集群调度模拟器，完成 FIFO、Bin Packing、Gang Scheduling 与报告。
 
-- CUDA Kernel Lab 至少有 vector add、RMSNorm、RoPE 三个可运行样例。
+## Day 50｜2026-08-26｜周三｜3h
 
----
-
-# 第 7 周：ClusterPilot-Lite GPU 集群调度模拟器
-
-周目标：完成小型 GPU 集群调度器模拟，证明分布式资源调度理解。
-
-## Day 43｜2026-08-19｜周三｜3h
-
-主题：集群与 Job 建模。
+主题：Cluster 建模。
 
 任务：
+1. 定义 Node/GPU/Job。
+2. 写 cluster config 和 job workload。
 
-1. 定义 Node、GPU、Job。
-2. 定义 job 字段：arrival_time、gpu_count、duration、priority。
-3. 建立 cluster config。
-4. 写简单 workload。
+产出 / 验收：
+- 能加载虚拟集群
 
-产出：
-
-- ClusterPilot-Lite 项目骨架。
-
-验收：
-
-- 能加载一个虚拟 GPU 集群。
-
-## Day 44｜2026-08-20｜周四｜3h
+## Day 51｜2026-08-27｜周四｜3h
 
 主题：FIFO 调度。
 
 任务：
+1. 有资源启动 job，不足等待，完成释放。
 
-1. 实现 FIFO 队列。
-2. 有资源则启动 job。
-3. 资源不足则等待。
-4. job 完成后释放 GPU。
-5. 记录完成时间。
+产出 / 验收：
+- FIFO 结果可读
 
-产出：
+## Day 52｜2026-08-28｜周五｜3h
 
-- FIFO 调度器。
-
-验收：
-
-- 多个 job 可以按顺序运行完成。
-
-## Day 45｜2026-08-21｜周五｜3h
-
-主题：指标统计。
+主题：GPU utilization 指标。
 
 任务：
+1. 统计利用率、queue time、completed jobs。
 
-1. 统计 GPU utilization。
-2. 统计 average queue time。
-3. 统计 completed jobs。
-4. 统计 large job wait time。
+产出 / 验收：
+- 结果 CSV
 
-产出：
-
-- Cluster metrics。
-
-验收：
-
-- FIFO 策略有可读结果。
-
-## Day 46｜2026-08-22｜周六｜5h
+## Day 53｜2026-08-29｜周六｜5h
 
 主题：Bin Packing。
 
 任务：
+1. 优先选择最合适节点。
+2. 统计碎片率。
 
-1. 实现 bin packing 策略。
-2. 优先把 job 放到已有占用节点或最合适节点。
-3. 统计碎片率。
-4. 与 FIFO 对比。
+产出 / 验收：
+- 与 FIFO 对比
 
-产出：
-
-- BinPackingScheduler。
-
-验收：
-
-- 能说明 bin packing 对碎片和利用率的影响。
-
-## Day 47｜2026-08-23｜周日｜5h
+## Day 54｜2026-08-30｜周日｜5h
 
 主题：Gang Scheduling。
 
 任务：
-
-1. 实现 gang scheduling。
-2. job 要么拿到所需全部 GPU，要么不启动。
-3. 设计大任务 workload。
-4. 对比 FIFO 和 gang 策略。
-
-产出：
-
-- GangScheduler。
-
-验收：
-
-- 大 GPU 任务不会被部分分配导致资源占用。
-
-## Day 48｜2026-08-24｜周一｜3h
-
-主题：workload 与实验。
-
-任务：
-
-1. 生成混合 workload。
-2. 运行 FIFO、Bin Packing、Gang Scheduling。
-3. 输出 CSV。
-4. 画 2 张图。
-
-产出：
-
-- ClusterPilot 实验结果。
-
-验收：
-
-- 三种策略有可比较数据。
-
-## Day 49｜2026-08-25｜周二｜3h
-
-主题：第 7 周整理。
-
-任务：
-
-1. 写 `clusterpilot-lite/README.md`。
-2. 写 `docs/clusterpilot_report.md`。
-3. 补测试。
-4. 写第 7 周复盘。
-
-产出：
-
-- ClusterPilot-Lite 阶段性完成。
-- `docs/week7_review.md`。
-
-验收：
-
-- 能讲清楚 GPU 集群为什么需要 gang scheduling 和 bin packing。
-
----
-
-# 第 8 周：整合、文档、简历化
-
-周目标：把已有成果整理成可展示仓库和可写入简历的项目。
-
-## Day 50｜2026-08-26｜周三｜3h
-
-主题：仓库清理。
-
-任务：
-
-1. 删除临时代码。
-2. 统一目录命名。
-3. 统一 README 风格。
-4. 检查所有命令是否可运行。
-
-产出：
-
-- 干净仓库结构。
-
-验收：
-
-- 根目录 README 能引导别人运行三个子项目。
-
-## Day 51｜2026-08-27｜周四｜3h
-
-主题：BlockServe-Sim 最终文档。
-
-任务：
-
-1. 完善 BlockServe-Sim README。
-2. 加入架构说明，但不写过度设计。
-3. 加入 benchmark 结果图。
-4. 加入当前限制和后续计划。
-
-产出：
-
-- BlockServe-Sim 文档完成。
-
-验收：
-
-- 一个不了解项目的人能在 10 分钟内看懂目标和运行方式。
-
-## Day 52｜2026-08-28｜周五｜3h
-
-主题：CUDA Kernel Lab 最终文档。
-
-任务：
-
-1. 完善 CUDA Kernel Lab README。
-2. 说明每个 kernel 的目的。
-3. 记录 correctness 结果。
-4. 记录简单性能结果。
-
-产出：
-
-- CUDA Kernel Lab 文档完成。
-
-验收：
-
-- 能展示你已经开始具备 CUDA 基础。
-
-## Day 53｜2026-08-29｜周六｜5h
-
-主题：ClusterPilot-Lite 最终文档。
-
-任务：
-
-1. 完善 ClusterPilot-Lite README。
-2. 补充三种调度策略说明。
-3. 加入实验结果。
-4. 写当前限制和下一步计划。
-
-产出：
-
-- ClusterPilot-Lite 文档完成。
-
-验收：
-
-- 能展示你理解 GPU 集群调度的基本问题。
-
-## Day 54｜2026-08-30｜周日｜5h
-
-主题：两个月总结报告。
-
-任务：
-
-1. 写 `docs/two_month_report.md`。
-2. 总结 BlockServe-Sim、CUDA Kernel Lab、ClusterPilot-Lite。
-3. 说明学到的核心概念。
-4. 说明没有完成的内容和原因。
-5. 制定下一阶段计划。
-
-产出：
-
-- 两个月总结报告。
-
-验收：
-
-- 报告可以作为面试前复习材料。
+1. job 要么拿到全部 GPU 要么等待。
+2. 设计大任务 workload。
+
+产出 / 验收：
+- 大任务不会部分占用
 
 ## Day 55｜2026-08-31｜周一｜3h
+
+主题：实验与图表。
+
+任务：
+1. 跑 FIFO/BinPacking/Gang。
+2. 画 2 张图。
+
+产出 / 验收：
+- clusterpilot_report 初版
+
+## Day 56｜2026-09-01｜周二｜3h
+
+主题：第8周整合。
+
+任务：
+1. 整理 README。
+2. 写 week8_review。
+3. 更新总 README。
+
+产出 / 验收：
+- 原 8 周项目组合 v0.1
+
+
+# 第 9 周
+
+周目标：TinyGPT 学习与 char-level GPT：阅读 minGPT/nanoGPT，训练一个 <1M~3M 参数的 character-level GPT。
+
+## Day 57｜2026-09-02｜周三｜3h
+
+主题：minGPT/nanoGPT 阅读。
+
+任务：
+1. 读 minGPT 核心文件和 nanoGPT train.py。
+2. 记录训练循环、模型结构、生成流程。
+
+产出 / 验收：
+- docs/tinygpt_reading_notes.md
+
+## Day 58｜2026-09-03｜周四｜3h
+
+主题：char-level 数据集。
+
+任务：
+1. 准备 tiny shakespeare 或小中文语料。
+2. 实现字符级 tokenizer。
+
+产出 / 验收：
+- 能 encode/decode
+
+## Day 59｜2026-09-04｜周五｜3h
+
+主题：TinyGPT 最小模型。
+
+任务：
+1. 用 PyTorch 搭建 <1M 参数 GPT。
+2. 跑 forward 和 loss。
+
+产出 / 验收：
+- loss 可计算
+
+## Day 60｜2026-09-05｜周六｜5h
+
+主题：训练循环。
+
+任务：
+1. 实现 train/eval loop。
+2. 保存 checkpoint。
+
+产出 / 验收：
+- 能跑 100~500 step
+
+## Day 61｜2026-09-06｜周日｜5h
+
+主题：生成文本。
+
+任务：
+1. 实现 generate。
+2. 记录不同 temperature/top-k 的输出。
+
+产出 / 验收：
+- 能生成可读风格文本
+
+## Day 62｜2026-09-07｜周一｜3h
+
+主题：训练记录。
+
+任务：
+1. 画 train/val loss 曲线。
+2. 整理超参数。
+
+产出 / 验收：
+- docs/tinygpt_char_report.md
+
+## Day 63｜2026-09-08｜周二｜3h
+
+主题：第9周整理。
+
+任务：
+1. 把 TinyGPT 学习结果写入 README。
+2. 清理实验脚本。
+
+产出 / 验收：
+- week9_review 完成
+
+
+# 第 10 周
+
+周目标：自研 TinyGPT-Train：自己实现训练脚本，目标 10M 参数级模型，保存 checkpoint，生成文本。
+
+## Day 64｜2026-09-09｜周三｜3h
+
+主题：自研 TinyGPT-Train 骨架。
+
+任务：
+1. 新建 tinygpt-train/。
+2. 不用照抄 nanoGPT，自己组织 config/model/train。
+
+产出 / 验收：
+- 项目可运行
+
+## Day 65｜2026-09-10｜周四｜3h
+
+主题：10M 模型配置。
+
+任务：
+1. 估算 n_layer/n_head/n_embd 参数量。
+2. 定义 5M/10M 两档配置。
+
+产出 / 验收：
+- docs/param_count_notes.md
+
+## Day 66｜2026-09-11｜周五｜3h
+
+主题：训练 10M v0。
+
+任务：
+1. 跑短训练，验证显存/内存/速度。
+2. 优先 CPU/MPS/云 GPU 之一。
+
+产出 / 验收：
+- 能完成短训练
+
+## Day 67｜2026-09-12｜周六｜5h
+
+主题：Checkpoint 管理。
+
+任务：
+1. 保存 model_config、state_dict、tokenizer meta。
+2. 恢复训练。
+
+产出 / 验收：
+- 断点恢复测试
+
+## Day 68｜2026-09-13｜周日｜5h
+
+主题：采样与评估。
+
+任务：
+1. 生成样本文本。
+2. 记录 loss，不追求效果。
+
+产出 / 验收：
+- sample_outputs.md
+
+## Day 69｜2026-09-14｜周一｜3h
+
+主题：10M 报告。
+
+任务：
+1. 写训练环境、数据、超参、loss、限制。
+
+产出 / 验收：
+- docs/tinygpt_10m_report.md
+
+## Day 70｜2026-09-15｜周二｜3h
+
+主题：第10周整理。
+
+任务：
+1. 清理 TinyGPT-Train。
+2. 写 README。
+
+产出 / 验收：
+- week10_review 完成
+
+
+# 第 11 周
+
+周目标：10M~50M 模型训练与权重导出：稳定训练、记录 loss、导出权重，准备 BlockServe 接入。
+
+## Day 71｜2026-09-16｜周三｜3h
+
+主题：10M 稳定训练。
+
+任务：
+1. 延长训练或改良数据处理。
+2. 记录更稳定 loss。
+
+产出 / 验收：
+- 可展示 checkpoint
+
+## Day 72｜2026-09-17｜周四｜3h
+
+主题：权重导出格式。
+
+任务：
+1. 设计 model.json + weights.bin/safetensors 导出。
+2. 先导出 embedding/lm_head/一层权重。
+
+产出 / 验收：
+- 导出脚本初版
+
+## Day 73｜2026-09-18｜周五｜3h
+
+主题：BlockServe CPU 加载器。
+
+任务：
+1. BlockServe 读取 model.json 和权重文件。
+2. 不急着完整 forward。
+
+产出 / 验收：
+- 能读取配置和权重形状
+
+## Day 74｜2026-09-19｜周六｜5h
+
+主题：CPU forward v0。
+
+任务：
+1. 实现 TinyGPT 单层或完整小模型 forward 的 CPU 路径。
+2. 对齐 PyTorch logits。
+
+产出 / 验收：
+- 小输入误差可测
+
+## Day 75｜2026-09-20｜周日｜5h
+
+主题：生成路径。
+
+任务：
+1. BlockServe CPU backend 进行 greedy generate。
+2. 接入自训练 checkpoint。
+
+产出 / 验收：
+- 能生成 token/text
+
+## Day 76｜2026-09-21｜周一｜3h
+
+主题：50M 可行性实验。
+
+任务：
+1. 评估 50M 配置训练速度和内存。
+2. 决定是否继续。
+
+产出 / 验收：
+- docs/tinygpt_50m_feasibility.md
+
+## Day 77｜2026-09-22｜周二｜3h
+
+主题：第11周整理。
+
+任务：
+1. 整理导出器、CPU 推理文档。
+2. 列出未完成 forward/性能问题。
+
+产出 / 验收：
+- week11_review 完成
+
+
+# 第 12 周
+
+周目标：BlockServe 接入自训练模型 + 100M 预研：CPU 推理路径、权重加载、生成验证、100M 训练可行性报告、最终文档。
+
+## Day 78｜2026-09-23｜周三｜3h
+
+主题：1B 推理复盘。
+
+任务：
+1. 整理 llama.cpp 0.5B/1.1B 基线。
+2. 明确自研 Runtime 到 1B 的缺口：算子、量化、权重格式、Metal/CUDA。
+
+产出 / 验收：
+- docs/1b_runtime_gap.md
+
+## Day 79｜2026-09-24｜周四｜3h
+
+主题：BlockServe + TinyGPT 演示。
+
+任务：
+1. 写一键脚本：训练小模型或加载 checkpoint → 导出 → BlockServe 推理。
+
+产出 / 验收：
+- demo 脚本可运行
+
+## Day 80｜2026-09-25｜周五｜3h
+
+主题：100M 训练预研。
+
+任务：
+1. 估算参数、数据 token、训练时间、硬件需求。
+2. 给出本地/云 GPU 两套方案。
+
+产出 / 验收：
+- docs/100m_training_plan.md
+
+## Day 81｜2026-09-26｜周六｜5h
+
+主题：最终 Benchmark/报告补齐。
+
+任务：
+1. 更新 BlockServe-Sim、TinyGPT、ClusterPilot 图表和数据。
+
+产出 / 验收：
+- 报告一致
+
+## Day 82｜2026-09-27｜周日｜5h
 
 主题：简历化表达。
 
 任务：
+1. 写 resume bullets：BlockServe、TinyGPT、ClusterPilot。
+2. 准备面试 Q&A。
 
-1. 写项目简历 bullet。
-2. 准备 3 分钟项目介绍。
-3. 准备 10 个面试自问自答。
-4. 检查是否有夸大表述。
+产出 / 验收：
+- docs/resume_bullets.md
 
-产出：
+## Day 83｜2026-09-28｜周一｜3h
 
-- `docs/resume_bullets.md`
-- `docs/interview_notes.md`
-
-验收：
-
-- 能用简洁语言说明项目价值。
-
-## Day 56｜2026-09-01｜周二｜3h
-
-主题：最终验收。
+主题：最终复现。
 
 任务：
+1. 从零运行主要命令。
+2. 修文档链接和脚本路径。
 
-1. 从头运行所有项目。
-2. 确认 benchmark 可复现。
-3. 确认图表和文档链接正确。
-4. 打 tag：`v0.1-two-month-plan`。
-5. 写最终复盘。
+产出 / 验收：
+- 仓库可复现
 
-产出：
+## Day 84｜2026-09-29｜周二｜3h
 
-- 可展示版本 v0.1。
-- `docs/final_review.md`。
+主题：最终验收与下一阶段。
 
-验收：
+任务：
+1. 写 docs/final_12week_review.md。
+2. 打 tag v0.2-12week-plan。
+3. 列第13~16周计划。
 
-- 仓库可编译、可运行、可读、可讲。
-
----
-
-# 每周检查点
-
-| 周 | 检查点 |
-|---|---|
-| 第 1 周 | C++ 工程骨架可编译，测试框架可运行 |
-| 第 2 周 | 请求生命周期模拟完成 |
-| 第 3 周 | Paged KV Cache 模拟完成 |
-| 第 4 周 | 三种调度策略完成 |
-| 第 5 周 | BlockServe-Sim benchmark 和报告完成 |
-| 第 6 周 | CUDA Kernel Lab 完成至少 3 个 kernel 示例 |
-| 第 7 周 | ClusterPilot-Lite 完成三种调度策略 |
-| 第 8 周 | 文档、图表、简历 bullet、最终复盘完成 |
+产出 / 验收：
+- 12周版本完成
 
 ---
 
-# 风险控制
+## 4. 资料阅读顺序
 
-## 如果第 3 周 KV Cache 卡住
+### BlockServe / LLM Serving
+1. vLLM Documentation：先看 PagedAttention、continuous batching、chunked prefill、prefix caching 的概念，不读深层源码。
+2. PagedAttention paper：理解 KV Cache fragmentation 和 paging 思想。
+3. llama.cpp：作为本地 0.5B~1.1B 量化模型推理基线，不作为当前自研 Runtime 的照抄对象。
 
-砍掉 contiguous baseline，先把 paged block pool 做正确。
+### C++ / CUDA
+1. CMake 官方教程：只学 target、include、build、test。
+2. C++ Primer：只看 STL、类、RAII、引用、optional、文件 IO。
+3. CUDA C++ Programming Guide：只看 kernel launch、thread hierarchy、global memory、cudaMalloc/cudaMemcpy/cudaEvent。
 
-## 如果第 4 周 continuous batching 卡住
+### TinyGPT / 训练
+1. minGPT：理解 GPT 从零实现。
+2. nanoGPT：理解训练脚本、数据加载、checkpoint、生成。
+3. llm.c：后期参考 C/CUDA 训练系统，不在前 8 周深入。
+4. LitGPT：作为工程化训练、微调、部署 recipe 的参考。
 
-先实现 decode 优先和 token budget，不做 chunked prefill。
-
-## 如果第 6 周 CUDA 卡住
-
-保留 vector add 和 RMSNorm，RoPE 改为 CPU reference 加文档说明。
-
-## 如果第 7 周时间不足
-
-ClusterPilot-Lite 只保留 FIFO 和 Gang Scheduling，Bin Packing 延后。
-
-## 如果整体进度落后
-
-优先级如下：
-
-1. BlockServe-Sim
-2. Benchmark 和文档
-3. CUDA Kernel Lab
-4. ClusterPilot-Lite
-
-不要为了保留 ClusterPilot-Lite 而牺牲 BlockServe-Sim 的完整度。
+### 模型选择
+1. 第 6 周本地推理基线：优先 Qwen2.5-0.5B GGUF，其次 TinyLlama-1.1B GGUF。
+2. 第 9~11 周训练：先 char-level TinyGPT，再 10M 参数模型。
+3. 第 12 周 100M：只做可行性评估，不作为必须完成训练目标。
 
 ---
 
-# 最低可接受成果
+## 5. 参考资料
 
-如果两个月内只完成最低版本，也必须达到：
+- vLLM Documentation: https://docs.vllm.ai/en/stable/
+- Efficient Memory Management for Large Language Model Serving with PagedAttention: https://arxiv.org/abs/2309.06180
+- llama.cpp: https://github.com/ggml-org/llama.cpp
+- CUDA C++ Programming Guide: https://docs.nvidia.com/cuda/cuda-programming-guide/index.html
+- nanoGPT: https://github.com/karpathy/nanogpt
+- minGPT: https://github.com/karpathy/minGPT
+- llm.c: https://github.com/karpathy/llm.c
+- LitGPT: https://github.com/Lightning-AI/litgpt
+- Qwen2.5-0.5B: https://huggingface.co/Qwen/Qwen2.5-0.5B
+- Qwen2.5-0.5B-Instruct-GGUF: https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF
+- TinyLlama: https://github.com/jzhang38/TinyLlama
+- Chinchilla Scaling Laws / 20 tokens per parameter 参考: https://epoch.ai/publications/chinchilla-scaling-a-replication-attempt
+
+---
+
+## 6. 风险控制
+
+### 如果 C++ 进度慢
+- 暂缓 ClusterPilot-Lite 的 Bin Packing，只保留 FIFO + Gang Scheduling。
+- 不做复杂模板、协程、多线程、锁自由结构。
+
+### 如果 KV Cache 卡住
+- 砍掉 contiguous baseline，先保证 BlockPool + RequestBlockTable 正确。
+
+### 如果 continuous batching 卡住
+- 先实现 decode 优先 + token budget，不强行完成 chunked prefill。
+
+### 如果 CUDA 环境不可用
+- CUDA Kernel Lab 保留 CPU reference + CUDA 源码 + 远程运行脚本。
+- 第 6 周的 1B 基线使用 llama.cpp/Metal 或 CPU，不依赖 CUDA。
+
+### 如果 1B 自研 Runtime 难度过高
+- 用 llama.cpp 作为 1B 推理基线。
+- BlockServe 自研 Runtime 只接入 TinyGPT 10M 模型。
+- 在文档中明确差距，不伪装成果。
+
+### 如果 10M 训练速度慢
+- 缩小到 3M~5M，保证训练链路完整。
+- 10M 作为配置和短训练结果保留。
+
+### 如果 100M 不现实
+- 只完成参数、数据、显存、训练时长估算，不启动完整训练。
+
+---
+
+## 7. 最低可接受成果
+
+12 周最低版本必须达到：
 
 ```text
-BlockServe-Sim：
+BlockServe-Sim:
 - 请求状态机
 - Paged KV Cache block pool
 - Sequential vs Continuous Batching
 - 一组 benchmark
-- 一篇完整文档
+- 一篇完整报告
 
-CUDA Kernel Lab：
+1B 推理基线:
+- 使用 llama.cpp/Metal 或 CPU 跑通 0.5B~1.1B 量化模型
+- 记录 tokens/s、内存、上下文长度
+
+CUDA Kernel Lab:
 - vector add
-- RMSNorm
-- correctness test
+- RMSNorm reference 或 CUDA kernel
 
-ClusterPilot-Lite：
+ClusterPilot-Lite:
 - FIFO
 - Gang Scheduling
 - 简单 GPU utilization 统计
-```
 
-这仍然可以构成一个清晰的 AI Infra 入门项目组合。
+TinyGPT-Train:
+- char-level GPT 可训练
+- 10M 级模型短训练或稳定训练
+- checkpoint 保存
+
+BlockServe 接入:
+- CPU 路径加载自训练 TinyGPT 权重
+- greedy generate 可运行
+
+100M 预研:
+- 完成可行性报告，不要求训练完成
+```
 
 ---
 
-# 两个月后的下一阶段
+## 8. 简历阶段性表达
 
-完成本计划后，下一阶段再考虑：
+完成 12 周后，简历可以写成：
 
-1. BlockServe-Sim 接入真实小模型。
-2. 写真实 CUDA Paged Attention。
-3. 增加 C++ HTTP 服务。
-4. 将 ClusterPilot-Lite 改为 Go 版本。
-5. 研究 vLLM 代码并尝试提交小 PR。
-6. 准备 AI Infra / GPU Runtime 方向实习。
+```text
+AI Infra Lab：围绕 LLM 推理运行时、KV Cache 管理、GPU 调度和小模型训练构建系统实验项目。
+- 使用 C++ 实现 BlockServe-Sim，支持请求状态机、Paged KV Cache 模拟、token-level continuous batching 与 benchmark 对比。
+- 构建本地 0.5B~1.1B 量化模型推理基线，记录受限显存/内存环境下的 tokens/s、上下文长度与资源占用。
+- 实现 CUDA Kernel Lab 或 CPU reference，覆盖 RMSNorm、RoPE 等 Transformer 基础算子，并记录正确性验证方式。
+- 实现 ClusterPilot-Lite GPU 调度模拟器，支持 FIFO、Bin Packing/Gang Scheduling 和 GPU utilization 统计。
+- 从零实现 TinyGPT-Train，完成 char-level GPT 与 10M 级模型训练、checkpoint 保存和 BlockServe CPU 推理接入。
+```
