@@ -24,7 +24,7 @@ int main(int argc, char* argv[]){
     if(argc >= 2){
         workload_path = argv[1];
     }else{
-        workload_path = "blockserve-sim/configs/sample_workload.jsonl";
+        workload_path = "blockserve/configs/sample_workload.jsonl";
     }
 
     std::cout << "workload file: " << workload_path << std::endl;

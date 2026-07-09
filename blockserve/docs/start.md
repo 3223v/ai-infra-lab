@@ -1,4 +1,4 @@
 # 项目启动指令
     cmake -B build
     cmake --build build
-    ./build/blockserve-sim/blockserve_sim
+    ./build/blockserve/blockserve

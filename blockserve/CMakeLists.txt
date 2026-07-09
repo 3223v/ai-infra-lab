@@ -1,15 +1,15 @@
-add_executable(blockserve_sim
+add_executable(blockserve
     src/main.cpp
     src/request.cpp
     src/request_queue.cpp
     src/workload_loader.cpp
 )
 
-target_include_directories(blockserve_sim PRIVATE
+target_include_directories(blockserve PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_options(blockserve_sim PRIVATE
+target_compile_options(blockserve PRIVATE
     -Wall
     -Wextra
     -Wpedantic

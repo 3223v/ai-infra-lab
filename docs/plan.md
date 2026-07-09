@@ -5,23 +5,23 @@
 总投入：300 小时  
 节奏：工作日每天 3 小时，周六周日每天 5 小时，一周 25 小时  
 当前基础：C++ 有基础但高级能力不足；已有必要计算机基础；本地环境为 macOS arm64、Apple clang、Python 3.9，当前无 CUDA 本地环境。  
-核心目标：先完成 BlockServe-Sim 和调度/KV Cache 能力，再建立 1B 小模型本地推理基线，随后手写 TinyGPT 并训练 10M 级模型，最后把自训练模型接入 BlockServe CPU 推理路径，并评估 100M 模型训练可行性。
+核心目标：先完成 BlockServe 和调度/KV Cache 能力，再建立 1B 小模型本地推理基线，随后手写 TinyGPT 并训练 10M 级模型，最后把自训练模型接入 BlockServe CPU 推理路径，并评估 100M 模型训练可行性。
 
 ---
 
 ## 0. 重新评估后的结论
 
-1. 原 8 周计划的主线是合理的：BlockServe-Sim、CUDA Kernel Lab、ClusterPilot-Lite 和完整文档。它已经把每天的投入固定为工作日 3 小时、休息日 5 小时，并要求每天至少一次 commit、记录问题和结论。
+1. 原 8 周计划的主线是合理的：BlockServe、CUDA Kernel、ClusterPilot 和完整文档。它已经把每天的投入固定为工作日 3 小时、休息日 5 小时，并要求每天至少一次 commit、记录问题和结论。
 2. 根据你当前的 C++ 能力，前 2 周不能只堆功能，必须把 CMake、测试、错误处理、状态机、输入解析压实。否则后面 KV Cache 和调度会失控。
 3. “在 4GB 显存电脑上推理 1B 左右模型”可以作为第 6 周的基线目标，但不应理解为 12 周内从零写出完整 1B Llama/Qwen Runtime。现实目标是：用 llama.cpp/Metal 或 CPU 跑通 0.5B~1.1B GGUF 模型，记录性能；自研 BlockServe 优先接入自己训练的 TinyGPT。
 4. “手写小 GPT 并训练 10M 模型”适合作为第 9~11 周目标。100M 模型训练只做可行性预研，不强行训练完成。
-5. 本计划采用“先系统、再模型、最后接入”的顺序：BlockServe-Sim → 1B 推理基线 → CUDA/Kernel Lab → ClusterPilot → TinyGPT-Train → BlockServe CPU 推理接入。
+5. 本计划采用“先系统、再模型、最后接入”的顺序：BlockServe → 1B 推理基线 → CUDA/Kernel Lab → ClusterPilot → TinyGPT-Train → BlockServe CPU 推理接入。
 
 ---
 
 ## 1. 阶段产出
 
-### 第 1~5 周：BlockServe-Sim v0.1
+### 第 1~5 周：BlockServe v0.1
 - C++ 调度模拟器
 - Request 状态机
 - WorkloadLoader
@@ -96,7 +96,7 @@
 
 任务：
 1. 确认当前 git 状态与已完成内容。
-2. 整理根 README 与 blockserve-sim README。
+2. 整理根 README 与 blockserve README。
 3. 记录当前环境：macOS arm64、Apple clang、Python 3.9、无 CUDA。
 
 产出 / 验收：
@@ -113,7 +113,7 @@
 3. 补 docs/cpp_cmake_notes.md。
 
 产出 / 验收：
-- blockserve_sim 可编译运行
+- blockserve 可编译运行
 - 文档能解释 target/include/build
 
 ## Day 3｜2026-07-10｜周五｜3h
@@ -183,7 +183,7 @@
 
 # 第 2 周
 
-周目标：BlockServe-Sim 请求生命周期：时间推进、状态机、取消/超时/拒绝、基础指标。
+周目标：BlockServe 请求生命周期：时间推进、状态机、取消/超时/拒绝、基础指标。
 
 ## Day 8｜2026-07-15｜周三｜3h
 
@@ -434,7 +434,7 @@
 
 # 第 5 周
 
-周目标：Benchmark 与报告：workload 生成、批量运行、指标统计、图表、阶段性 BlockServe-Sim v0.1。
+周目标：Benchmark 与报告：workload 生成、批量运行、指标统计、图表、阶段性 BlockServe v0.1。
 
 ## Day 29｜2026-08-05｜周三｜3h
 
@@ -502,14 +502,14 @@
 
 ## Day 35｜2026-08-11｜周二｜3h
 
-主题：BlockServe-Sim v0.1。
+主题：BlockServe v0.1。
 
 任务：
 1. 整理 README、命令、限制、下一步。
 2. 打 tag 可选。
 
 产出 / 验收：
-- BlockServe-Sim 可作为简历雏形
+- BlockServe 可作为简历雏形
 
 
 # 第 6 周
@@ -1162,7 +1162,7 @@
 12 周最低版本必须达到：
 
 ```text
-BlockServe-Sim:
+BlockServe:
 - 请求状态机
 - Paged KV Cache block pool
 - Sequential vs Continuous Batching
@@ -1173,11 +1173,11 @@ BlockServe-Sim:
 - 使用 llama.cpp/Metal 或 CPU 跑通 0.5B~1.1B 量化模型
 - 记录 tokens/s、内存、上下文长度
 
-CUDA Kernel Lab:
+CUDA Kernel:
 - vector add
 - RMSNorm reference 或 CUDA kernel
 
-ClusterPilot-Lite:
+ClusterPilot:
 - FIFO
 - Gang Scheduling
 - 简单 GPU utilization 统计
@@ -1203,7 +1203,7 @@ BlockServe 接入:
 
 ```text
 AI Infra Lab：围绕 LLM 推理运行时、KV Cache 管理、GPU 调度和小模型训练构建系统实验项目。
-- 使用 C++ 实现 BlockServe-Sim，支持请求状态机、Paged KV Cache 模拟、token-level continuous batching 与 benchmark 对比。
+- 使用 C++ 实现 BlockServe，支持请求状态机、Paged KV Cache 模拟、token-level continuous batching 与 benchmark 对比。
 - 构建本地 0.5B~1.1B 量化模型推理基线，记录受限显存/内存环境下的 tokens/s、上下文长度与资源占用。
 - 实现 CUDA Kernel Lab 或 CPU reference，覆盖 RMSNorm、RoPE 等 Transformer 基础算子，并记录正确性验证方式。
 - 实现 ClusterPilot-Lite GPU 调度模拟器，支持 FIFO、Bin Packing/Gang Scheduling 和 GPU utilization 统计。
