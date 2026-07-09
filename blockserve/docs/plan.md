@@ -679,7 +679,7 @@
 
 # 第 8 周
 
-周目标：ClusterPilot-Lite：GPU 集群调度模拟器，完成 FIFO、Bin Packing、Gang Scheduling 与报告。
+周目标：ClusterPilot：GPU 集群调度模拟器，完成 FIFO、Bin Packing、Gang Scheduling 与报告。
 
 ## Day 50｜2026-08-26｜周三｜3h
 
