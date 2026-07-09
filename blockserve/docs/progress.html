@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlockServe 计划与进度</title>
+<style>
+  :root {
+    --done: #2e7d32; --done-bg: #e8f5e9;
+    --active: #1565c0; --active-bg: #e3f2fd;
+    --pending: #616161; --pending-bg: #f5f5f5;
+    --future: #bdbdbd; --future-bg: #fafafa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #333; padding: 24px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* header */
+  .header { background: #fff; border-radius: 12px; padding: 24px 32px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .header h1 { font-size: 22px; margin-bottom: 6px; }
+  .header .sub { color: #888; font-size: 13px; }
+
+  /* progress bar */
+  .overall { background: #fff; border-radius: 12px; padding: 20px 32px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .overall .bar-label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+  .overall .track { height: 10px; background: #e0e0e0; border-radius: 5px; overflow: hidden; }
+  .overall .fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #43a047, #66bb6a); transition: width .3s; }
+  .overall .days-row { display: flex; margin-top: 10px; gap: 6px; align-items: center; }
+  .overall .days-row .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.done { background: var(--done); }
+  .dot.active { background: var(--active); }
+  .dot.pending { background: #e0e0e0; }
+  .dot.future { background: #f0f0f0; border: 1px solid #ddd; }
+  .overall .days-row span { font-size: 11px; color: #999; }
+
+  /* week cards */
+  .weeks { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .week { background: #fff; border-radius: 12px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .week h3 { font-size: 15px; margin-bottom: 4px; }
+  .week .goal { font-size: 12px; color: #888; margin-bottom: 14px; }
+
+  .day { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+  .day .status { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .day .label { flex: 1; line-height: 1.5; }
+  .day .tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+
+  .day.done { background: var(--done-bg); }
+  .day.done .status { background: var(--done); }
+  .day.done .tag { background: #c8e6c9; color: var(--done); }
+
+  .day.active { background: var(--active-bg); border: 1px solid #bbdefb; }
+  .day.active .status { background: var(--active); }
+  .day.active .tag { background: #bbdefb; color: var(--active); }
+
+  .day.pending { background: var(--pending-bg); color: #888; }
+  .day.pending .status { background: #ccc; }
+
+  .day.future { background: var(--future-bg); color: #bbb; }
+  .day.future .status { background: #e0e0e0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>BlockServe v0.1 — 12 周计划</h1>
+  <div class="sub">起止：2026-07-08 ~ 2026-09-29 &nbsp;|&nbsp; 总计 84 天，预估 300h &nbsp;|&nbsp; 更新于 2026-07-11</div>
+</div>
+
+<div class="overall">
+  <div class="bar-label"><strong>整体进度</strong><span>4 / 84 天 (4.8%)</span></div>
+  <div class="track"><div class="fill" style="width:4.8%"></div></div>
+  <div class="days-row" style="margin-top:14px;">
+    <span style="margin-right:4px;">Week 1</span>
+    <span class="dot done" title="Day 1 完成"></span>
+    <span class="dot done" title="Day 2 完成"></span>
+    <span class="dot done" title="Day 3 完成"></span>
+    <span class="dot active" title="Day 4 进行中"></span>
+    <span class="dot pending"></span><span class="dot pending"></span><span class="dot pending"></span>
+    <span style="margin:0 6px;color:#ccc;">|</span>
+    <span style="margin-right:4px;">W2</span>
+    <span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span>
+    <span style="margin:0 6px;color:#ccc;">|</span>
+    <span style="margin-right:4px;">W3~5</span>
+    <span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span><span class="dot future"></span>…×21
+    <span style="margin:0 6px;color:#ccc;">|</span>
+    <span>W6~12</span>
+    <span class="dot future"></span><span class="dot future"></span><span class="dot future"></span>…×49
+  </div>
+</div>
+
+<div class="weeks">
+
+  <!-- Week 1 -->
+  <div class="week">
+    <h3>第 1 周 · C++ 工程骨架</h3>
+    <div class="goal">稳定基础：CMake、类型、输入读取、arrival simulation</div>
+    <div class="day done"><span class="status"></span><span class="label">Day 1 · 仓库与现状整理</span><span class="tag">done</span></div>
+    <div class="day done"><span class="status"></span><span class="label">Day 2 · CMake 与 Request 模块整理</span><span class="tag">done</span></div>
+    <div class="day done"><span class="status"></span><span class="label">Day 3 · WorkloadLoader 稳定化</span><span class="tag">done</span></div>
+    <div class="day active"><span class="status"></span><span class="label">Day 4 · Arrival Simulation</span><span class="tag">doing</span></div>
+    <div class="day pending"><span class="status"></span><span class="label">Day 5 · 测试框架接入 (Catch2)</span><span class="tag">—</span></div>
+    <div class="day pending"><span class="status"></span><span class="label">Day 6 · RAII 与 optional 复盘</span><span class="tag">—</span></div>
+    <div class="day pending"><span class="status"></span><span class="label">Day 7 · 第一周整理</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 2 -->
+  <div class="week">
+    <h3>第 2 周 · 请求生命周期</h3>
+    <div class="goal">时间推进、状态机、取消/超时/拒绝、基础指标</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 8 · 模拟主循环 Simulator</span><span class="tag">—</span></div>
+    <div class="day future"><span class="status"></span><span class="label">Day 9 · 请求状态字段扩展</span><span class="tag">—</span></div>
+    <div class="day future"><span class="status"></span><span class="label">Day 10 · Sequential 生命周期</span><span class="tag">—</span></div>
+    <div class="day future"><span class="status"></span><span class="label">Day 11 · 多请求 Sequential</span><span class="tag">—</span></div>
+    <div class="day future"><span class="status"></span><span class="label">Day 12 · 取消与超时</span><span class="tag">—</span></div>
+    <div class="day future"><span class="status"></span><span class="label">Day 13 · Rejected 与输入校验</span><span class="tag">—</span></div>
+    <div class="day future"><span class="status"></span><span class="label">Day 14 · 第 2 周整理</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 3 -->
+  <div class="week">
+    <h3>第 3 周 · Paged KV Cache 模拟</h3>
+    <div class="goal">BlockPool、RequestBlockTable、按需分配、资源回收</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 15~21 · BlockPool / 按需分配 / 回收</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 4 -->
+  <div class="week">
+    <h3>第 4 周 · 调度策略</h3>
+    <div class="goal">Sequential / FixedBatch / ContinuousBatching / Prefill-Decode 分离</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 22~28 · Scheduler + Chunked Prefill</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 5 -->
+  <div class="week">
+    <h3>第 5 周 · Benchmark 与报告</h3>
+    <div class="goal">workload 生成、批量运行、CSV、图表、v0.1 release</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 29~35 · Benchmark + BlockServe v0.1</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 6 -->
+  <div class="week">
+    <h3>第 6 周 · 1B 推理基线</h3>
+    <div class="goal">llama.cpp/Metal 跑通量化模型，记录性能基线</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 36~42 · llama.cpp + 模型结构阅读</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 7 -->
+  <div class="week">
+    <h3>第 7 周 · CUDA Kernel Lab</h3>
+    <div class="goal">Vector Add、RMSNorm、RoPE，CPU reference + CUDA 源码</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 43~49 · CUDA kernels / CPU ref</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 8 -->
+  <div class="week">
+    <h3>第 8 周 · ClusterPilot-Lite</h3>
+    <div class="goal">GPU 集群模拟：FIFO / BinPacking / Gang Scheduling</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 50~56 · 集群调度 + 报告</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 9 -->
+  <div class="week">
+    <h3>第 9 周 · TinyGPT 学习</h3>
+    <div class="goal">阅读 minGPT/nanoGPT，训练 char-level GPT</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 57~63 · char-level GPT 训练</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 10 -->
+  <div class="week">
+    <h3>第 10 周 · TinyGPT-Train</h3>
+    <div class="goal">自研训练脚本，10M 参数模型，checkpoint 保存</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 64~70 · 10M 模型训练</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 11 -->
+  <div class="week">
+    <h3>第 11 周 · BlockServe 接入</h3>
+    <div class="goal">权重导出 → BlockServe CPU 加载 → greedy generate</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 71~77 · CPU forward + 生成路径</span><span class="tag">—</span></div>
+  </div>
+
+  <!-- Week 12 -->
+  <div class="week">
+    <h3>第 12 周 · 最终验收</h3>
+    <div class="goal">100M 预研、简历化、一键复现、v0.2 tag</div>
+    <div class="day future"><span class="status"></span><span class="label">Day 78~84 · 整理 + 最终报告</span><span class="tag">—</span></div>
+  </div>
+
+</div>
+
+<div style="margin-top:24px; color:#999; font-size:11px; text-align:center;">
+  数据来源：docs/plan.md · 自动同步于构建
+</div>
+
+</div>
+</body>
+</html>

@@ -1,21 +1,12 @@
 #include "blockserve/request.hpp"
 #include "blockserve/request_queue.hpp"
 #include "blockserve/workload_loader.hpp"
+#include "blockserve/simulator.hpp"
 
 #include <iostream>
 #include <vector>
 #include <cstdlib>
 
-namespace {
-    void print_request(const blockserve::Request& request) {
-        std::cout << "Request ID: " << request.id << std::endl;
-        std::cout << "Request Status: " << blockserve::to_string(request.status) << std::endl;
-        std::cout << "Arrival Time: " << request.arrival_time << std::endl;
-        std::cout << "Prompt Length: " << request.prompt_len << std::endl;
-        std::cout << "Max New Tokens: " << request.max_new_tokens << std::endl;
-        std::cout << "Generated Tokens: " << request.generated_tokens << std::endl;
-    }
-}// namespace
 int main(int argc, char* argv[]){
 
     std::cout << "Blockserve-Sim started\n" << std::endl;
@@ -42,23 +33,7 @@ int main(int argc, char* argv[]){
 
     blockserve::RequestQueue queue;
 
-    for(const auto& request : load_result.requests) {
-        queue.push(request);
-    }
-    std::cout << "Loaded requests: " << load_result.requests.size() << "\n" << std::endl;
-    std::cout << "Initial queue size: " << queue.size() << "\n" << std::endl;
-
-    while(!queue.empty()) {
-        auto request = queue.pop();
-
-        if(!request.has_value()) {
-            break;
-        }
-        print_request(*request);
-        std::cout << "Is Terminal: "
-                  << (blockserve::is_terminal_status(request->status) ? "true" : "false")
-                  << "\n\n";
-    }
-    std::cout << "Final queue size: " << queue.size() << std::endl;
+    blockserve::Simulator simulator(load_result.requests);
+    simulator.run_until(100); // Run for 100 time units
     return 0;
 }
