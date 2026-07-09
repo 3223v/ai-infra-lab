@@ -9,7 +9,7 @@
 
 int main(int argc, char* argv[]){
 
-    std::cout << "Blockserve-Sim started\n" << std::endl;
+    std::cout << "Blockserve started\n" << std::endl;
     
     std::string workload_path;
     if(argc >= 2){
@@ -30,8 +30,6 @@ int main(int argc, char* argv[]){
         }
         return 1;
     }
-
-    blockserve::RequestQueue queue;
 
     blockserve::Simulator simulator(load_result.requests);
     simulator.run_until(100); // Run for 100 time units
