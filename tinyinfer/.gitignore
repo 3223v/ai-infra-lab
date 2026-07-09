@@ -1,0 +1,20 @@
+# Build
+build/
+cmake-build-*/
+
+# Models (large binary files)
+models/*.bin
+models/*.json
+!models/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
