@@ -25,7 +25,7 @@ CUDA 基础 kernel 实验。
 - 使用 Python / NumPy / PyTorch 做正确性对照
 - 记录基础性能数据
 
-### 3. ClusterPilot-Lite
+### 3. ClusterPilot
 
 GPU 集群调度模拟器。
 
