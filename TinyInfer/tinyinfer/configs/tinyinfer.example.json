@@ -1,0 +1,41 @@
+{
+  "comment": "TinyInfer 服务配置示例 — 复制为 tinyinfer.json 后修改",
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8080,
+    "http_worker_threads": 4,
+    "max_request_body_bytes": 1048576,
+    "shutdown_grace_period_ms": 5000
+  },
+  "runtime": {
+    "device": "cpu",
+    "model_dtype": "float32",
+    "max_num_sequences": 8,
+    "max_waiting_requests": 128,
+    "max_batch_tokens": 256,
+    "prefill_chunk_size": 64,
+    "max_decode_rounds_before_prefill": 4,
+    "output_channel_capacity": 64,
+    "default_request_timeout_ms": 30000
+  },
+  "cache": {
+    "layout": "linear_slots",
+    "kv_cache_dtype": "float32",
+    "max_num_sequence_slots": 8,
+    "max_context_per_slot": 512,
+    "enable_debug_poisoning": false
+  },
+  "model": {
+    "path": "./model/",
+    "config_file": "config.json",
+    "weights_file": "model.safetensors",
+    "tokenizer_file": "tokenizer.model"
+  },
+  "logging": {
+    "level": "info",
+    "file": "tinyinfer.log",
+    "console": true,
+    "max_file_size_mb": 10,
+    "max_files": 3
+  }
+}

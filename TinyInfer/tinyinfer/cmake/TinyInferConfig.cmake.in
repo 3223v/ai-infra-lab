@@ -1,0 +1,8 @@
+# TinyInfer CMake 配置文件 (安装后使用)
+# 由 TinyInferConfig.cmake.in 生成
+
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/TinyInferTargets.cmake")
+
+check_required_components(TinyInfer)

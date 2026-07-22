@@ -1,0 +1,14 @@
+{
+  "level": "info",
+  "console": true,
+  "file": "tinyinfer.log",
+  "max_file_size_mb": 10,
+  "max_files": 3,
+  "pattern": "[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [%n] %v",
+  "components": {
+    "scheduler": "debug",
+    "model_executor": "info",
+    "http": "info",
+    "cache": "info"
+  }
+}

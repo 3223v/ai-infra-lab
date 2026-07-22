@@ -1,0 +1,56 @@
+# ==============================================================================
+# TinyInfer — clang-format 配置 (基于 LLVM 风格)
+# ==============================================================================
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# 缩进
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+AccessModifierOffset: -1
+
+# 列宽
+ColumnLimit: 100
+
+# 大括号
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# 指针/引用对齐
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# 空格
+SpaceBeforeParens: ControlStatements
+SpaceAfterTemplateKeyword: false
+
+# 换行
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+BinPackParameters: false
+BinPackArguments: false
+
+# Include 排序
+IncludeBlocks: Regroup
+SortIncludes: CaseSensitive
+IncludeCategories:
+  - Regex: '^<.*\.h>'
+    Priority: 1
+  - Regex: '^<.*>'
+    Priority: 2
+  - Regex: '^".*"'
+    Priority: 3
+
+# 其他
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+FixNamespaceComments: true
+ReflowComments: true
+
+# C++ 特性
+Standard: c++20

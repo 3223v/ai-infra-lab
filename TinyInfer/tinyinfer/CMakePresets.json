@@ -1,0 +1,127 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "debug-core",
+      "displayName": "Debug Core (no Torch, no HTTP)",
+      "description": "核心模块 Debug 构建，不链接 LibTorch 和 Drogon",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/debug-core",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "20",
+        "TINYINFER_BUILD_TESTS": "ON",
+        "TINYINFER_USE_LIBTORCH": "OFF",
+        "TINYINFER_USE_DROGON": "OFF"
+      }
+    },
+    {
+      "name": "release-core",
+      "displayName": "Release Core",
+      "description": "核心模块 Release 构建",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/release-core",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_STANDARD": "20",
+        "TINYINFER_BUILD_TESTS": "OFF",
+        "TINYINFER_USE_LIBTORCH": "OFF",
+        "TINYINFER_USE_DROGON": "OFF"
+      }
+    },
+    {
+      "name": "asan-core",
+      "displayName": "ASan + UBSan Core",
+      "description": "AddressSanitizer + UndefinedBehaviorSanitizer",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/asan-core",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "20",
+        "TINYINFER_BUILD_TESTS": "ON",
+        "TINYINFER_ENABLE_ASAN": "ON",
+        "TINYINFER_ENABLE_UBSAN": "ON",
+        "TINYINFER_USE_LIBTORCH": "OFF",
+        "TINYINFER_USE_DROGON": "OFF"
+      }
+    },
+    {
+      "name": "tsan-mock",
+      "displayName": "TSan Mock Scheduler",
+      "description": "ThreadSanitizer on Mock Backend + Scheduler tests",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/tsan-mock",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "20",
+        "TINYINFER_BUILD_TESTS": "ON",
+        "TINYINFER_ENABLE_TSAN": "ON",
+        "TINYINFER_USE_LIBTORCH": "OFF",
+        "TINYINFER_USE_DROGON": "OFF"
+      }
+    },
+    {
+      "name": "debug-cpu-torch",
+      "displayName": "Debug CPU + LibTorch",
+      "description": "包含 LibTorch 后端的 Debug 构建",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/debug-cpu-torch",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "20",
+        "TINYINFER_BUILD_TESTS": "ON",
+        "TINYINFER_USE_LIBTORCH": "ON",
+        "TINYINFER_USE_DROGON": "OFF"
+      }
+    },
+    {
+      "name": "release-cpu-torch",
+      "displayName": "Release CPU + LibTorch",
+      "description": "包含 LibTorch 后端的 Release 构建",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/release-cpu-torch",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_STANDARD": "20",
+        "TINYINFER_BUILD_TESTS": "OFF",
+        "TINYINFER_USE_LIBTORCH": "ON",
+        "TINYINFER_USE_DROGON": "OFF"
+      }
+    },
+    {
+      "name": "debug-mock-server",
+      "displayName": "Debug Mock + Drogon HTTP",
+      "description": "Mock Backend + Drogon HTTP Server Debug 构建",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/debug-mock-server",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "20",
+        "TINYINFER_BUILD_TESTS": "ON",
+        "TINYINFER_USE_LIBTORCH": "OFF",
+        "TINYINFER_USE_DROGON": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-core",
+      "configurePreset": "debug-core",
+      "jobs": 4
+    },
+    {
+      "name": "release-core",
+      "configurePreset": "release-core",
+      "jobs": 4
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug-core",
+      "configurePreset": "debug-core",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
