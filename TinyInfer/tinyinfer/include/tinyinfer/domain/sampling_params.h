@@ -33,12 +33,12 @@ namespace tinyinfer {
             [[nodiscard]] const std::vector<int32_t>& stop_token_ids() const noexcept { return stop_token_ids_; }
             [[nodiscard]] const std::vector<std::string>& stop_strings() const noexcept { return stop_strings_; }
             
-            [[nodiscard]] bool validate() const noexcept {
-                if (max_new_tokens <= 0) return false;
-                if (temperature < 0.f) return false;
-                if (top_k < 0) return false;
-                if (top_p < 0.f || top_p > 1.f) return false;
-                if (repetition_penalty < 1.f) return false;
+            [[nodiscard]] bool valid() const noexcept {
+                if (max_new_tokens_ <= 0) return false;
+                if (temperature_ < 0.0f) return false;
+                if (top_k_ < 0) return false;
+                if (top_p_ < 0.0f || top_p_ > 1.0f) return false;
+                if (repetition_penalty_ < 1.0f) return false;
                 return true;
             }
 
