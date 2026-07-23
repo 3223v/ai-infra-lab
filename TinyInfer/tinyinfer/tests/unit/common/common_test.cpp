@@ -65,15 +65,17 @@ TEST(ResultTest, VoidError) {
 // Clock 测试
 // ---------------------------------------------------------------------------
 TEST(ClockTest, NowIsMonotonic) {
-  auto t1 = tinyinfer::Clock::now();
-  auto t2 = tinyinfer::Clock::now();
+  auto clock = tinyinfer::Clock::shared();
+  auto t1 = clock->now();
+  auto t2 = clock->now();
   // 不要求严格递增（可能在同一节拍内），但不应倒退
   EXPECT_GE(t2, t1);
 }
 
 TEST(ClockTest, ElapsedPositive) {
-  auto start = tinyinfer::Clock::now();
-  auto elapsed = tinyinfer::Clock::elapsed_ns(start);
+  auto clock = tinyinfer::Clock::shared();
+  auto start = clock->now();
+  auto elapsed = clock->elapsed_ns(start);
   EXPECT_GE(elapsed, 0);
 }
 
