@@ -5,6 +5,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <deque>
+#include <optional>
 
 
 namespace tinyinfer {
@@ -24,7 +25,7 @@ namespace tinyinfer {
             bool try_push(T item);
 
             // 尝试取，不阻塞，空则false
-            [[nidiscard]] std::optional<T> try_pop();
+            [[nodiscard]] std::optional<T> try_pop();
 
             // 关闭队列，唤醒所有阻塞的线程
             void close();
@@ -41,5 +42,5 @@ namespace tinyinfer {
             std::condition_variable cv_push_;
             std::condition_variable cv_pop_;
 
-    }
+    };
 }
