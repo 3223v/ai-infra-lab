@@ -84,6 +84,12 @@ class OutputEvent {
   [[nodiscard]] int32_t prompt_tokens() const noexcept { return prompt_tokens_; }
   [[nodiscard]] int32_t generated_tokens() const noexcept { return generated_tokens_; }
 
+  /// 是否为终止事件（Finish / Error / Cancelled）。
+  /// 终止事件标志流的结束，OutputChannel 保证终止事件幂等（重复写不报错、不重复入队）。
+  [[nodiscard]] bool IsTerminal() const noexcept {
+    return type_ == Type::kFinish || type_ == Type::kError || type_ == Type::kCancelled;
+  }
+
  private:
   Type type_;
 

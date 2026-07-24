@@ -10,6 +10,7 @@ add_executable(tinyinfer_test_common
   unit/domain/finish_reason_test.cpp
   unit/domain/sampling_params_test.cpp
   unit/domain/output_event_test.cpp
+  unit/domain/request_state_test.cpp
 )
 
 target_link_libraries(tinyinfer_test_common PRIVATE
